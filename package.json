@@ -13,6 +13,7 @@
     "@heroicons/react": "^2.1.1",
     "@sei-js/core": "^3.2.1",
     "@sei-js/react": "^3.2.0",
+    "axios": "^1.6.7",
     "next": "14.1.0",
     "react": "^18",
     "react-dom": "^18"
