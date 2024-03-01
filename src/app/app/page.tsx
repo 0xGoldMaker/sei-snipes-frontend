@@ -12,16 +12,25 @@ import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 const rpcUrl = 'https://rpc.atlantic-2.seinetwork.io';
 const restUrl = 'https://rest.atlantic-2.seinetwork.io/';
 const chainId = "atlantic-2";
+const apiUrl = "/api/" //set API url
 
 export default function App() {
 
     const [wallet, setWallet] = useState(false) as any;
     const [accounts, setAccounts] = useState([]) as any;
     const [balance, setBalance] = useState("");
+    const [collections, setCollections] = useState([])
+    const [collection, setCollection] = useState('')
+    const [nfts, setNfts] = useState([])
+    const [collectionPage, setCollectionPage] = useState(1)
 
     useEffect(() => {
         checkBalance();
     }, [wallet])
+
+    useEffect(() => {
+        getNfts();
+    }, [collection, collectionPage])
 
 
     const connect = async () => {
@@ -61,6 +70,33 @@ export default function App() {
         }
     }
 
+    //get collections
+    const getCollections = async () => {
+        try {
+
+            let { data } = await axios.get(`${apiUrl}collections`)
+
+            setCollections(data.results)
+        }
+        catch (err) {
+            console.log(err)
+        }
+    }
+
+
+
+    const getNfts = async () => {
+        try {
+
+            let { data } = await axios.get(`${apiUrl}nfts?collection=${collection}&page=${collectionPage}`)
+
+            setNfts(data.results)
+        }
+        catch (err) {
+            console.log(err)
+        }
+    }
+
     return (
         <SeiWalletProvider chainConfiguration={{ chainId, restUrl, rpcUrl }} wallets={["compass"]}>
 
@@ -69,7 +105,7 @@ export default function App() {
                 {!wallet &&
                     <div className="max-w-md w-full h-full flex flex-col px-6 py-8 *: bg-white justify-center items-center shadow-md">
                         <h2 className="text-2xl font-semibold text-center text-indigo-500 mt-auto">
-                            Sei Bots
+                            SeiBots
                         </h2>
                         <div className="flex justify-center items-center  align-middle mt-5">
                             <Image src="/compass.png" alt="compass" width={50} height={50} />
