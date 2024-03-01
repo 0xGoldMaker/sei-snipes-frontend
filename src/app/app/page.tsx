@@ -58,7 +58,7 @@ export default function App() {
     const checkBalance = async () => {
         if (!wallet) return;
         try {
-            const { data } = await axios.get('https://rest.atlantic-2.seinetwork.io/cosmos/bank/v1beta1/balances/' + wallet)
+            const { data } = await axios.get('https://rest.' + chainId + '.seinetwork.io/cosmos/bank/v1beta1/balances/' + wallet)
             console.log('Balance', data)
 
             const balance = data.balances.find((balance: any) => balance.denom === "usei");
