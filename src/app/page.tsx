@@ -2,9 +2,17 @@
 import { Combobox } from "@headlessui/react";
 import { useState, useMemo, useEffect } from "react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-
 import { SeiWalletProvider } from "@sei-js/react";
 import { useWallet, WalletConnectButton, useQueryClient } from "@sei-js/react";
+import { ThemeSwitch } from "../components/ThemeSwitch";
+import Image from "next/image";
+import Connect from "../components/Connect/Connect";
+import SMContainer from "../components/SociaMediaContainer/SMContainer";
+import logo from "../../public/logo/seisaw.png";
+import seibots from "../../public/logo/seibots.png"
+import Snipe from "@/components/Snipe/Snipe";
+import { useSigningClient } from "@sei-js/react";
+
 
 type BalanceResponseType = {
   amount: string;
@@ -16,138 +24,199 @@ function classNames(...classes: any) {
 }
 
 export default function Home() {
-  const rpcUrl = "YOUR_RPC_URL";
-  const restUrl = "YOUR_REST_URL";
+  const user_id=""
+  const rpcUrl = "https://rpc.atlantic-2.seinetwork.io";
+  const restUrl = "https://rest.atlantic-2.seinetwork.io";
   const chainId = "atlantic-2";
+
+
+  const { signingClient, isLoading } = useSigningClient(rpcUrl);
   const { offlineSigner, connectedWallet, accounts } = useWallet();
-
-  const [walletBalances, setWalletBalances] = useState<BalanceResponseType[]>([]);
   const walletAccount = useMemo(() => accounts?.[0], [accounts]);
+
   const { queryClient } = useQueryClient();
-
-  const user_id = ""
-
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (queryClient && walletAccount) {
-        const { balances } = await queryClient.cosmos.bank.v1beta1.allBalances({ address: walletAccount.address });
-        return balances as BalanceResponseType[];
-      }
-      return [];
-    };
-
-    fetchBalances().then(setWalletBalances);
-  }, [offlineSigner]);
-
-  const [runningScrapes, setRunningScrapes] = useState<
-    Array<{
-      id: string;
-      collectionId: string;
-      traits: Array<string>;
-      targetPrice: number;
-    }>
-  >([]);
-
-  const updateRunningScrapes = () => {
-    fetch(`http://localhost:8000/api/snipe/saved`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user_id: user_id }),
-    })
-      .then((res) => res.json())
-      .then((data) =>
-        data.map((d: { snipe_id: string; contract_address: string; target_price: number; traits: Array<any> }) => ({
-          id: d.snipe_id,
-          collectionId: d.contract_address,
-          traits: d.traits,
-          targetPrice: d.target_price,
-        }))
-      )
-      .then((data) => setRunningScrapes(data))
-      .catch((err) => console.log(err));
-  };
-
-  useEffect(() => {
-    updateRunningScrapes();
-  }, []);
-
-  const handleScrapeTaskDelete = (taskId: string) => {
-    fetch(`http://localhost:8000/api/snipe`, {
-      method: "DELETE",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user_id: user_id, task_id: taskId }),
-    }).catch((err) => console.log(err));
-    updateRunningScrapes();
-  };
-
+  const [walletBalances, setWalletBalances] = useState<BalanceResponseType[]>([]);
+  const [runningScrapes, setRunningScrapes] = useState<any[]>([]);
   const [collectionQuery, setCollectionQuery] = useState("");
-  const [selectedCollection, setSelectedCollection] = useState<{ contractAddress: string; name: string }>({
+  
+  
+  const [selectedCollection, setSelectedCollection] = useState<{
+    contractAddress: string;
+    name: string;
+  }>({
     contractAddress: "",
     name: "",
   });
-  const [collectionList, setCollectionList] = useState<Array<{ contractAddress: string; name: string }>>([]);
-
-  const handleOnCollectionQueryChange = (event: any) => {
-    if (event.target.value == "") {
-      setCollectionList([]);
-      setSelectedCollection({
-        contractAddress: "",
-        name: "",
-      });
-      setTraits({});
-      setSelectedTrait(null);
-      return;
-    }
-
-    fetch(`http://localhost:8000/api/collection/search/${event.target.value}`)
-      .then((response) => response.json())
-      .then((collection: Array<{ contract_address: string; name: string }>) => {
-        return collection.map((item) => ({ contractAddress: item.contract_address, name: item.name }));
-      })
-      .then((collections) => setCollectionList(collections))
-      .catch((err) => console.log(err));
-  };
-
+  const [collectionList, setCollectionList] = useState<any[]>([]);
 
   const [traits, setTraits] = useState<{
-    [traitName: string]: Array<{ value: string; num_tokens: number; display_type: any; rarity: any }>;
+    [traitName: string]: Array<{
+      value: string;
+      num_tokens: number;
+      display_type: any;
+      rarity: any;
+    }>;
   }>({});
-  const [selectedTrait, setSelectedTrait] = useState<{ trait: string; val: string } | null>(null);
+  const [selectedTrait, setSelectedTrait] = useState<{
+    trait: string;
+    val: string;
+  } | null>(null);
 
-  const handleOnSelectedCollectionChange = (event: any) => {
-    setSelectedCollection({ contractAddress: event.contractAddress, name: event.name });
-    fetch(`http://localhost:8000/api/traits/${event.contractAddress}`)
-      .then((res) => res.json())
-      .then((traitCollection) => setTraits(traitCollection));
-  };
-
-
-  const [traitQuery, setTraitQuery] = useState('')
-
-
+  const [traitQuery, setTraitQuery] = useState("");
   const [targetPrice, setTargetPrice] = useState(0);
 
-  const submitTask = () => {
-    fetch(`http://localhost:8000/api/snipe`, {
-      method: "POST",
-      body: JSON.stringify({
-        user_id: user_id,
-        contract_address: selectedCollection.contractAddress,
-        target_price: targetPrice,
-        trait: selectedTrait,
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
-    updateRunningScrapes();
+  if(!isLoading){
+    console.log(isLoading)
+    useSigningClient();
+  }
+
+  const fetchBalances = async () => {
+    if (queryClient && walletAccount) {
+      const { balances } = await queryClient.cosmos.bank.v1beta1.allBalances({
+        address: walletAccount.address,
+      });
+      setWalletBalances(balances as BalanceResponseType[]);
+    }
   };
 
+  // const fetchRunningScrapes = () => {
+  //   fetch(`https://app.seisaw.xyz/api/snipe/saved`, {
+  //     method: "POST",
+  //     headers: { "content-type": "application/json" },
+  //     body: JSON.stringify({ user_id }),
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       setRunningScrapes(
+  //         data.map((d: any) => ({
+  //           id: d.snipe_id,
+  //           collectionId: d.contract_address,
+  //           traits: d.traits,
+  //           targetPrice: d.target_price,
+  //         }))
+  //       );
+  //     })
+  //     .catch((err) => console.log(err));
+  // };
+
+//   useEffect(() => {
+//     fetchBalances();
+//   }, [offlineSigner]);
+
+//   useEffect(() => {
+//     fetchRunningScrapes();
+//   }, []);
+
+  // const handleScrapeTaskDelete = (taskId: string) => {
+  //   fetch(`https://app.seisaw.xyz/api/snipe`, {
+  //     method: "DELETE",
+  //     headers: { "content-type": "application/json" },
+  //     body: JSON.stringify({ user_id, task_id: taskId }),
+  //   }).catch((err) => console.log(err));
+  //   fetchRunningScrapes();
+  // };
+
+  // const handleOnCollectionQueryChange = (event: any) => {
+  //   const query = event.target.value;
+  //   if (query === "") {
+  //     setCollectionList([]);
+  //     setSelectedCollection({ contractAddress: "", name: "" });
+  //     setTraits({});
+  //     setSelectedTrait(null);
+  //     return;
+  //   }
+
+  //   fetch(`https://app.seisaw.xyz/api/collection/search/${query}`)
+  //     .then((response) => response.json())
+  //     .then((collection) => {
+  //       const formattedCollection = collection.map((item: any) => ({
+  //         contractAddress: item.contract_address,
+  //         name: item.name,
+  //       }));
+  //       setCollectionList(formattedCollection);
+  //     })
+  //     .catch((err) => console.log(err));
+  // };
+
+  // const handleOnSelectedCollectionChange = (event: any) => {
+  //   const selected = event;
+  //   setSelectedCollection(selected);
+  //   fetch(`https://app.seisaw.xyz/api/traits/${selected.contractAddress}`)
+  //     .then((res) => res.json())
+  //     .then((traitCollection) => setTraits(traitCollection))
+  //     .catch((err) => console.log(err));
+  // };
+
+  // const submitTask = () => {
+  //   fetch(`https://app.seisaw.xyz/api/snipe`, {
+  //     method: "POST",
+  //     body: JSON.stringify({
+  //       user_id: user_id,
+  //       contract_address: selectedCollection.contractAddress,
+  //       target_price: targetPrice,
+  //       trait: selectedTrait,
+  //     }),
+  //     headers: { "Content-Type": "application/json" },
+  //   })
+  //     .then(() => fetchRunningScrapes())
+  //     .catch((err) => console.log(err));
+  // };
+
   return (
-    <SeiWalletProvider chainConfiguration={{ chainId, restUrl, rpcUrl }} wallets={["compass"]}>
-      <div className="flex flex-col items-stretch justify-stretch">
-        <div className="flex py-3 px-6 border-1 ring-1 bg-slate-400">
-          {!connectedWallet ? <WalletConnectButton /> : <p>connected to {connectedWallet.walletInfo.name}</p>}
+    <SeiWalletProvider
+      chainConfiguration={{ chainId, restUrl, rpcUrl }}
+      wallets={["compass","keplr", "leap"]}
+    >
+        <div className="flex items-center justify-center h-screen">
+          <main className="relative w-full lg:w-[40%] h-[100vh] dark:bg-gradient-to-bl bg-gradient-to-bl from-[#F3F3F3] to-[#F8F8F8] dark:border-none border border-gray-100 drop-shadow-md">
+            {connectedWallet && (
+            <div className="absolute w-40 h-40 bg-red-500 left-0 top-0 dark:text-black z-100">
+              <button disabled>
+                <WalletConnectButton buttonClassName="bg-gray-100 text-gray-500 rounded-md px-2 py-1" />
+              </button>
+            </div>
+          )}
+            <div className="absolute right-4 cursor-pointer mt-4">
+              <div>
+                <ThemeSwitch />
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <Image
+                src={logo}
+                width={0}
+                height={0}
+                alt="SeiSaw Logo"
+                className="w-[100px] h-[100px]"
+              />
+            </div>
+            <br />
+            <div className="flex justify-center drop-shadow-xl">
+              <Connect />
+            </div>
+            
+
+            <br />
+            <div className="absolute w-full bottom-20 flex justify-center">
+              <span className="text-center flex gap-1 items-center">Powered by SeiBots<Image src={seibots} width={32} height={32} alt="🤖"/></span>
+            </div>
+            <div className="absolute flex justify-center bottom-4 w-full">
+              <SMContainer />
+            </div>
+          </main>
         </div>
-        <div className="container mx-auto w-1/2">
+      {/*<div className="flex flex-col items-stretch justify-stretch">
+         {connectedWallet && (
+            <Snipe />
+        )} */}
+        {/* <div className="flex py-3 px-6 border-1 ring-1 bg-slate-400">
+          {!connectedWallet ? (
+            <WalletConnectButton buttonClassName="px-6 py-3 rounded-full text-white flex gap-1 bg-gradient-to-br from-sky-600 to-sky-400 hover:bg-gradient-to-br hover:from-emerald-400 hover:to-emerald-500 drop-shadow-lg" />
+          ) : (
+            <p>connected to {connectedWallet.walletInfo.name}</p>
+          )}
+        </div> */}
+        {/* <div className="container mx-auto w-1/2">
           <div className="flex flex-col items-center justify-center gap-">
             <div>Snipe</div>
             <div className="grid grid-cols-3 gap-6 items-center">
@@ -162,10 +231,16 @@ export default function Home() {
                   <Combobox.Input
                     className="w-full rounded border-0 bg-white px-4 py-1 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     onChange={(event) => handleOnCollectionQueryChange(event)}
-                    displayValue={(collection: { collectionAddress: string; name: string }) => collection?.name}
+                    displayValue={(collection: {
+                      collectionAddress: string;
+                      name: string;
+                    }) => collection?.name}
                   />
                   <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none">
-                    <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    <ChevronUpDownIcon
+                      className="h-5 w-5 text-gray-400"
+                      aria-hidden="true"
+                    />
                   </Combobox.Button>
 
                   {collectionList.length > 0 && (
@@ -177,13 +252,20 @@ export default function Home() {
                           className={({ active }) =>
                             classNames(
                               "relative cursor-default select-none py-2 pl-8 pr-4",
-                              active ? "bg-indigo-600 text-white" : "text-gray-900"
+                              active
+                                ? "bg-indigo-600 text-white"
+                                : "text-gray-900"
                             )
                           }
                         >
                           {({ active, selected }) => (
                             <>
-                              <span className={classNames("block truncate", selected && "font-semibold")}>
+                              <span
+                                className={classNames(
+                                  "block truncate",
+                                  selected && "font-semibold"
+                                )}
+                              >
                                 {collection.name}
                               </span>
 
@@ -194,7 +276,10 @@ export default function Home() {
                                     active ? "text-white" : "text-indigo-600"
                                   )}
                                 >
-                                  <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                  <CheckIcon
+                                    className="h-5 w-5"
+                                    aria-hidden="true"
+                                  />
                                 </span>
                               )}
                             </>
@@ -220,14 +305,16 @@ export default function Home() {
                   <div>No collection chosen</div>
                 ) : Object.entries(traits).length == 0 ? (
                   <div>No trait available</div>
-                ) : (<Combobox className="col-span-2"
-                as="div"
-                value={selectedTrait}
-                onChange={setSelectedTrait}>
-                  <Combobox.Input
-          className="w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-        />
-                </Combobox>)}
+                ) : (
+                  <Combobox
+                    className="col-span-2"
+                    as="div"
+                    value={selectedTrait}
+                    onChange={setSelectedTrait}
+                  >
+                    <Combobox.Input className="w-full rounded-md border-0 bg-white py-1.5 pl-3 pr-10 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                  </Combobox>
+                )}
               </div>
 
               <button
@@ -281,8 +368,8 @@ export default function Home() {
               </table>
             )}
           </div>
-        </div>
-      </div>
+        </div> 
+      </div>*/}
     </SeiWalletProvider>
   );
 }
