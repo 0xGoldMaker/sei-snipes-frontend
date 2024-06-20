@@ -24,6 +24,7 @@ import { COMPASS_WALLET, verifyArbitrary } from "@sei-js/core";
 
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
+import { BalanceResponseType } from "@/app/page";
 
 interface NeuButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {}
 
@@ -68,7 +69,7 @@ const Connect: React.FC<NeuButtonProps> = ({ ...props }) => {
 
   const signMessage = async () => {
       try {
-          const stdSignature = await COMPASS_WALLET.signArbitrary('atlantic-2', walletAddress, message);
+          const stdSignature = await COMPASS_WALLET?.signArbitrary('atlantic-2', walletAddress, message);
           setSignature(stdSignature);
       } catch (error) {
           console.error("Error signing message:", error);
@@ -168,6 +169,7 @@ const Connect: React.FC<NeuButtonProps> = ({ ...props }) => {
       console.error("Error:", error.message);
     }
   };
+
   useEffect(() => {
     fetchUser();
     fetchUserSnipes();
@@ -322,7 +324,7 @@ const Connect: React.FC<NeuButtonProps> = ({ ...props }) => {
   }
   useEffect(() => {
     fetchCollectionData()
-  })
+  },[])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -376,7 +378,6 @@ const Connect: React.FC<NeuButtonProps> = ({ ...props }) => {
     }
   }, [executed, walletBalances]);
 
-console.log(botWallet)
 
   return (
     <>

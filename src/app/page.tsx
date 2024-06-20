@@ -15,7 +15,7 @@ import { useSigningClient } from "@sei-js/react";
 import useWalletStore from "@/store/useWalletStore";
 import { Copy } from "lucide-react"
 
-type BalanceResponseType = {
+export type BalanceResponseType = {
   amount: string;
   denom: string;
 };
